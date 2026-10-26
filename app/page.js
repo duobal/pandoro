@@ -4,54 +4,58 @@ import Image from "next/image";
 import styles from "./page.module.css";
 import { useState, useEffect, useRef } from "react";
 
+// dear code pls work
+
 function Timer() {
-  const [seconds, setSeconds] = useState(0); // for testing; change later to 0
-  const [minutes, setMinutes] = useState(0);
+  const [remaining, setRemaining] = useState(25 * 60 * 1000);
   const [isRunning, setIsRunning] = useState(false);
-  const prevSeconds = useRef(0);
+
+  const deadlineRef = useRef(null);
+
+  const start = () => {
+    deadlineRef.current = Date.now() + remaining;
+    setIsRunning(true);
+  }
+
+  const stop = () => setIsRunning(false);
 
   useEffect(() => {
     if (!isRunning) return;
 
     const id = setInterval(() => {
-      setSeconds((prev) => {
-        if (prev + 1 === 60) {
-          return 0;
-        }
+      const left = deadlineRef.current - Date.now();
+      if (left <= 0) {
+        setRemaining(0);
+        setIsRunning(false);
+        return;
+      }
 
-        return prev + 1;
-      });     
-    }, 1000)
+      setRemaining(left);
+    }, 250);
 
     return () => {
       clearInterval(id);
     }
-  }, [isRunning]);
 
-  useEffect(() => {
-    if (prevSeconds.current === 59 && seconds === 0) {
-      setMinutes(prev => prev + 1);
-    } 
-    prevSeconds.current = seconds;
-  }, [seconds]);
+  }, [isRunning])
+
+  const totalSeconds = Math.floor(remaining / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const displayRemaining = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  const toggleButtonDisplay = isRunning ? "Stop" : "Start";
 
   function reset() {
-    setMinutes(0);
-    setSeconds(0);
+    setRemaining(25 * 60 * 1000);
     setIsRunning(false);
-    prevSeconds.current = 0;
   }
-
-  const secondsDisplay = String(seconds).padStart(2, "0");
-  const minutesDisplay = String(minutes).padStart(2, "0");
-  const toggleButtonDisplay = isRunning ? "Stop" : "Start";
 
   return (
     <div className={styles.timerWrap}>
-      <h1 className={styles.timer} >{minutesDisplay} : {secondsDisplay}</h1>
+      <h1 className={styles.timer}>{displayRemaining}</h1>
       <div className={styles.utilityButtonWrapper}>
         <button className={styles.utilityButton} onClick={() => {
-          isRunning ? setIsRunning(false) : setIsRunning(true)
+          isRunning ? stop() : start()
         }}>{toggleButtonDisplay}</button>
         <button className={styles.utilityButton} onClick={reset}>Reset</button>
       </div>
